@@ -1,0 +1,58 @@
+:root {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: #111827;
+  background: linear-gradient(140deg, #ecfeff, #f0fdf4);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.app-header h1 {
+  margin: 0 0 8px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.event-list {
+  display: grid;
+  gap: 12px;
+  padding-left: 20px;
+}
+
+.seat-grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.seat {
+  border: 1px solid #9ca3af;
+  border-radius: 8px;
+  background: #dcfce7;
+  padding: 8px;
+}
+
+.seat.locked {
+  background: #fef3c7;
+}
+
+.seat.sold {
+  background: #fee2e2;
+}
