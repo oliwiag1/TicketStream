@@ -19,6 +19,7 @@ import (
 	"ticketstream/backend/internal/auth"
 	"ticketstream/backend/internal/config"
 	httpmiddleware "ticketstream/backend/internal/http/middleware"
+	"ticketstream/backend/internal/services"
 	"ticketstream/backend/pkg/db"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -57,7 +58,8 @@ func TestIntegrationConcurrentReservationSingleWinner(t *testing.T) {
 		t.Fatalf("insert seat: %v", err)
 	}
 
-	reservationHandler := NewReservationHandler(config.Config{SeatLockTTLSeconds: 600}, log.New(io.Discard, "", 0), pgPool, redisClient)
+	realtimeService := services.NewRealtimeService(log.New(io.Discard, "", 0), pgPool, redisClient)
+	reservationHandler := NewReservationHandler(config.Config{SeatLockTTLSeconds: 600}, log.New(io.Discard, "", 0), pgPool, redisClient, realtimeService)
 
 	const attempts = 8
 	statusCodes := make([]int, attempts)
@@ -154,8 +156,9 @@ func TestIntegrationReservationAndPaymentFlow(t *testing.T) {
 		t.Fatalf("insert seat: %v", err)
 	}
 
-	reservationHandler := NewReservationHandler(config.Config{SeatLockTTLSeconds: 600}, log.New(io.Discard, "", 0), pgPool, redisClient)
-	paymentHandler := NewPaymentHandler(log.New(io.Discard, "", 0), pgPool, redisClient)
+	realtimeService := services.NewRealtimeService(log.New(io.Discard, "", 0), pgPool, redisClient)
+	reservationHandler := NewReservationHandler(config.Config{SeatLockTTLSeconds: 600}, log.New(io.Discard, "", 0), pgPool, redisClient, realtimeService)
+	paymentHandler := NewPaymentHandler(log.New(io.Discard, "", 0), pgPool, redisClient, realtimeService)
 	subject := "integration-user-" + uuid.NewString()
 
 	reserveBody := []byte(`{"seat_id":"` + seatID + `"}`)

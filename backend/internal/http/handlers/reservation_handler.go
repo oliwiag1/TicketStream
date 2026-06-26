@@ -7,27 +7,29 @@ import (
 	"time"
 
 	"ticketstream/backend/internal/config"
+	"ticketstream/backend/internal/services"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
-	"github.com/google/uuid"
 )
 
 type ReservationHandler struct {
-	cfg    config.Config
-	logger *log.Logger
-	pgPool *pgxpool.Pool
-	redis  *redis.Client
+	cfg      config.Config
+	logger   *log.Logger
+	pgPool   *pgxpool.Pool
+	redis    *redis.Client
+	realtime *services.RealtimeService
 }
 
 type reserveRequest struct {
 	SeatID string `json:"seat_id"`
 }
 
-func NewReservationHandler(cfg config.Config, logger *log.Logger, pgPool *pgxpool.Pool, redisClient *redis.Client) *ReservationHandler {
-	return &ReservationHandler{cfg: cfg, logger: logger, pgPool: pgPool, redis: redisClient}
+func NewReservationHandler(cfg config.Config, logger *log.Logger, pgPool *pgxpool.Pool, redisClient *redis.Client, realtime *services.RealtimeService) *ReservationHandler {
+	return &ReservationHandler{cfg: cfg, logger: logger, pgPool: pgPool, redis: redisClient, realtime: realtime}
 }
 
 func (h *ReservationHandler) Reserve(c echo.Context) error {
@@ -113,6 +115,12 @@ func (h *ReservationHandler) Reserve(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "reservation commit failed"})
 	}
 
+	if h.realtime != nil {
+		if err := h.realtime.BroadcastSeatUpdate(ctx, eventID, lockedSeatID, "locked", time.Now().UTC()); err != nil {
+			h.logger.Printf("realtime reserve broadcast failed event=%s seat=%s err=%v", eventID, lockedSeatID, err)
+		}
+	}
+
 	return c.JSON(http.StatusAccepted, map[string]any{
 		"reservation_id": reservationID,
 		"event_id":       eventID,
@@ -183,6 +191,12 @@ func (h *ReservationHandler) Cancel(c echo.Context) error {
 	}
 
 	h.releaseSeatLock(ctx, seatLockKey(eventID, seatID), subject)
+
+	if h.realtime != nil {
+		if err := h.realtime.BroadcastSeatUpdate(ctx, eventID, seatID, "available", time.Now().UTC()); err != nil {
+			h.logger.Printf("realtime release broadcast failed event=%s seat=%s err=%v", eventID, seatID, err)
+		}
+	}
 
 	return c.JSON(http.StatusOK, map[string]any{
 		"message":        "released",

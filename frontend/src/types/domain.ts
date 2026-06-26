@@ -51,9 +51,23 @@ export type CancelReservationResponse = {
 };
 
 export type SeatUpdateEvent = {
+  type: "seat_status_changed";
   event_id: string;
   seat_id: string;
   status: SeatStatus;
   sequence_number: number;
   changed_at: string;
+};
+
+export type SeatSnapshotItem = {
+  seat_id: string;
+  status: SeatStatus;
+  changed_at: string;
+};
+
+export type SeatSnapshotEvent = {
+  type: "snapshot";
+  event_id: string;
+  sequence_number: number;
+  seats: SeatSnapshotItem[];
 };

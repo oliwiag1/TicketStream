@@ -65,10 +65,10 @@ Kryterium akceptacji:
 
 ### 3.5 Realtime WebSocket
 
-- [ ] Realny websocket upgrade i obsluga polaczen.
-- [ ] Broadcast seat_status_changed po lock/sold/release.
-- [ ] sequence_number i ochrona przed out-of-order.
-- [ ] Resync snapshot po reconnect.
+- [x] Realny websocket upgrade i obsluga polaczen.
+- [x] Broadcast seat_status_changed po lock/sold/release.
+- [x] sequence_number i ochrona przed out-of-order.
+- [x] Resync snapshot po reconnect.
 
 Kryterium akceptacji:
 

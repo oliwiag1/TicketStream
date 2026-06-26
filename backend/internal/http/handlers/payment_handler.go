@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"ticketstream/backend/internal/services"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,9 +17,10 @@ import (
 )
 
 type PaymentHandler struct {
-	logger *log.Logger
-	pgPool *pgxpool.Pool
-	redis  *redis.Client
+	logger   *log.Logger
+	pgPool   *pgxpool.Pool
+	redis    *redis.Client
+	realtime *services.RealtimeService
 }
 
 type payRequest struct {
@@ -25,8 +28,8 @@ type payRequest struct {
 	PaymentMethod string `json:"payment_method"`
 }
 
-func NewPaymentHandler(logger *log.Logger, pgPool *pgxpool.Pool, redisClient *redis.Client) *PaymentHandler {
-	return &PaymentHandler{logger: logger, pgPool: pgPool, redis: redisClient}
+func NewPaymentHandler(logger *log.Logger, pgPool *pgxpool.Pool, redisClient *redis.Client, realtime *services.RealtimeService) *PaymentHandler {
+	return &PaymentHandler{logger: logger, pgPool: pgPool, redis: redisClient, realtime: realtime}
 }
 
 func (h *PaymentHandler) Pay(c echo.Context) error {
@@ -162,6 +165,12 @@ func (h *PaymentHandler) Pay(c echo.Context) error {
 	}
 
 	h.releaseSeatLock(ctx, seatLockKey(eventID, seatID), subject)
+
+	if h.realtime != nil {
+		if err := h.realtime.BroadcastSeatUpdate(ctx, eventID, seatID, "sold", time.Now().UTC()); err != nil {
+			h.logger.Printf("realtime payment broadcast failed event=%s seat=%s err=%v", eventID, seatID, err)
+		}
+	}
 
 	return c.Blob(http.StatusOK, "application/json", responseBody)
 }
