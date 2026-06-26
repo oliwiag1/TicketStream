@@ -6,6 +6,45 @@ export type EventDTO = {
   startsAt: string;
 };
 
+export type EventAPIResponse = {
+  id: string;
+  title: string;
+  starts_at: string;
+};
+
+export type EventsResponse = {
+  items: EventAPIResponse[];
+  meta?: {
+    cached?: boolean;
+  };
+};
+
+export type SeatDTO = {
+  id: string;
+  row: string;
+  number: number;
+  status: SeatStatus;
+};
+
+export type SeatsResponse = {
+  event_id: string;
+  seats: SeatDTO[];
+};
+
+export type ReserveResponse = {
+  reservation_id: string;
+  event_id: string;
+  seat_id: string;
+  status: "locked";
+  expires_at: string;
+};
+
+export type PayResponse = {
+  status: "accepted";
+  reservation_id: string;
+  already_paid?: boolean;
+};
+
 export type SeatUpdateEvent = {
   event_id: string;
   seat_id: string;
