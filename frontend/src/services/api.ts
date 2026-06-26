@@ -3,6 +3,7 @@ import { getAccessToken } from "../auth/keycloak";
 import type {
   EventDTO,
   EventsResponse,
+  CancelReservationResponse,
   PayResponse,
   ReserveResponse,
   SeatDTO,
@@ -62,6 +63,15 @@ export async function payReservation(
         "Idempotency-Key": idempotencyKey
       }
     }
+  );
+  return response.data;
+}
+
+export async function cancelReservation(
+  reservationId: string
+): Promise<CancelReservationResponse> {
+  const response = await api.delete<CancelReservationResponse>(
+    `/reservations/${reservationId}`
   );
   return response.data;
 }

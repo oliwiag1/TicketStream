@@ -45,6 +45,11 @@ export type PayResponse = {
   already_paid?: boolean;
 };
 
+export type CancelReservationResponse = {
+  message: "released";
+  reservation_id: string;
+};
+
 export type SeatUpdateEvent = {
   event_id: string;
   seat_id: string;
