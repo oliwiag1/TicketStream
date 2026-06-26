@@ -76,11 +76,11 @@ Kryterium akceptacji:
 
 ### 3.6 Frontend MVP flow
 
-- [ ] Login view + obsluga sesji.
-- [ ] Lista wydarzen z API.
-- [ ] Mapa miejsc i akcja rezerwacji.
-- [ ] Przejscie do platnosci i obsluga komunikatow konfliktu.
-- [ ] Integracja websocket update.
+- [x] Login view + obsluga sesji.
+- [x] Lista wydarzen z API.
+- [x] Mapa miejsc i akcja rezerwacji.
+- [x] Przejscie do platnosci i obsluga komunikatow konfliktu.
+- [x] Integracja websocket update.
 
 Kryterium akceptacji:
 

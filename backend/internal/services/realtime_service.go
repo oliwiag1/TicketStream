@@ -34,6 +34,8 @@ type SeatStatusChangedEvent struct {
 
 type SeatSnapshotItem struct {
 	SeatID    string    `json:"seat_id"`
+	Row       string    `json:"row"`
+	Number    int       `json:"number"`
 	Status    string    `json:"status"`
 	ChangedAt time.Time `json:"changed_at"`
 }
@@ -137,7 +139,7 @@ func (s *RealtimeService) BuildSnapshot(ctx context.Context, eventID string) (Se
 
 	rows, err := s.pgPool.Query(
 		ctx,
-		`SELECT id, status, updated_at
+		`SELECT id, seat_row, seat_number, status, updated_at
 		 FROM seats
 		 WHERE event_id = $1
 		 ORDER BY seat_row, seat_number`,
@@ -151,7 +153,7 @@ func (s *RealtimeService) BuildSnapshot(ctx context.Context, eventID string) (Se
 	seats := make([]SeatSnapshotItem, 0)
 	for rows.Next() {
 		var seat SeatSnapshotItem
-		if err := rows.Scan(&seat.SeatID, &seat.Status, &seat.ChangedAt); err != nil {
+		if err := rows.Scan(&seat.SeatID, &seat.Row, &seat.Number, &seat.Status, &seat.ChangedAt); err != nil {
 			return SeatSnapshotEvent{}, err
 		}
 		seats = append(seats, seat)

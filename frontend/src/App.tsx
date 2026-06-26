@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LogOut, ShieldCheck } from "lucide-react";
 import { logout } from "./auth/keycloak";
 import { EntryPage } from "./pages/EntryPage";
 import { EventListPage } from "./pages/EventListPage";
 import { api } from "./services/api";
+import { StateMessage } from "./components/common/StateMessage";
 
 type CurrentUser = {
   sub: string;
@@ -32,8 +33,22 @@ export function App({ initialAuthenticated }: AppProps) {
 
   const user = userQuery.data;
 
+  useEffect(() => {
+    if (isAuthenticated && userQuery.isError) {
+      setIsAuthenticated(false);
+    }
+  }, [isAuthenticated, userQuery.isError]);
+
   if (!isAuthenticated) {
     return <EntryPage />;
+  }
+
+  if (userQuery.isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4">
+        <StateMessage icon="loading" label="Ładowanie sesji użytkownika" />
+      </main>
+    );
   }
 
   return (

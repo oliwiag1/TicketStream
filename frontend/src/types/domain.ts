@@ -61,6 +61,8 @@ export type SeatUpdateEvent = {
 
 export type SeatSnapshotItem = {
   seat_id: string;
+  row: string;
+  number: number;
   status: SeatStatus;
   changed_at: string;
 };
