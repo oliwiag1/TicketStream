@@ -54,9 +54,9 @@ Kryterium akceptacji:
 ### 3.4 Outbox + Worker
 
 - [x] Tworzenie outbox event po sukcesie platnosci.
-- [ ] Publisher outbox -> RabbitMQ.
-- [ ] Worker PDF/email z retry.
-- [ ] DLQ dla bledow trwalych.
+- [x] Publisher outbox -> RabbitMQ.
+- [x] Worker PDF/email z retry.
+- [x] DLQ dla bledow trwalych.
 
 Kryterium akceptacji:
 
