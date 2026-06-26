@@ -1,27 +1,43 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { EventListPanel } from "../components/events/EventListPanel";
 import { SeatMap } from "../components/SeatMap";
+import { getEvents } from "../services/api";
 
 export function EventListPage() {
-  const events = useMemo(
-    () => [
-      { id: "evt-1", title: "Koncert testowy", startsAt: "2026-07-01T19:00:00Z" },
-      { id: "evt-2", title: "Festiwal testowy", startsAt: "2026-07-15T18:00:00Z" }
-    ],
-    []
-  );
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const eventsQuery = useQuery({
+    queryKey: ["events"],
+    queryFn: getEvents
+  });
+
+  const events = eventsQuery.data ?? [];
+
+  useEffect(() => {
+    if (events.length === 0) {
+      setSelectedEventId(null);
+      return;
+    }
+
+    if (!selectedEventId || !events.some((eventItem) => eventItem.id === selectedEventId)) {
+      setSelectedEventId(events[0].id);
+    }
+  }, [events, selectedEventId]);
+
+  const selectedEvent =
+    events.find((eventItem) => eventItem.id === selectedEventId) ?? null;
 
   return (
-    <section className="card">
-      <h2>Nadchodzace wydarzenia</h2>
-      <ul className="event-list">
-        {events.map((eventItem) => (
-          <li key={eventItem.id}>
-            <strong>{eventItem.title}</strong>
-            <div>{new Date(eventItem.startsAt).toLocaleString("pl-PL")}</div>
-          </li>
-        ))}
-      </ul>
-      <SeatMap eventId="evt-1" />
-    </section>
+    <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <EventListPanel
+        events={events}
+        selectedEventId={selectedEventId}
+        isLoading={eventsQuery.isLoading}
+        isError={eventsQuery.isError}
+        onRefresh={() => void eventsQuery.refetch()}
+        onSelectEvent={setSelectedEventId}
+      />
+      <SeatMap eventItem={selectedEvent} />
+    </div>
   );
 }

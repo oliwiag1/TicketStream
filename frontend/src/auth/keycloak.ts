@@ -8,12 +8,24 @@ const keycloak = new Keycloak({
 
 export async function initAuth(): Promise<boolean> {
   const authenticated = await keycloak.init({
-    onLoad: "login-required",
+    onLoad: "check-sso",
     pkceMethod: "S256",
     checkLoginIframe: false
   });
 
   return authenticated;
+}
+
+export async function login(): Promise<void> {
+  await keycloak.login({
+    redirectUri: window.location.origin
+  });
+}
+
+export async function register(): Promise<void> {
+  await keycloak.register({
+    redirectUri: window.location.origin
+  });
 }
 
 export async function getAccessToken(): Promise<string | null> {

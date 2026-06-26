@@ -1,6 +1,7 @@
 {
   "realm": "ticketstream",
   "enabled": true,
+  "registrationAllowed": true,
   "roles": {
     "realm": [
       {

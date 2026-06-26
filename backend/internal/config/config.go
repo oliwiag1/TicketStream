@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -15,6 +16,7 @@ type Config struct {
 	KeycloakIssuerURL     string
 	KeycloakAudience      string
 	KeycloakJWKSURL       string
+	CORSAllowOrigins      []string
 	SeatLockTTLSeconds    int
 	RateLimitReserve      int
 	RateLimitWindowSecond int
@@ -31,6 +33,7 @@ func Load() Config {
 		KeycloakIssuerURL:     getenv("KEYCLOAK_ISSUER_URL", "http://localhost:18081/realms/ticketstream"),
 		KeycloakAudience:      getenv("KEYCLOAK_AUDIENCE", "ticketstream-frontend"),
 		KeycloakJWKSURL:       getenv("KEYCLOAK_JWKS_URL", "http://host.docker.internal:18081/realms/ticketstream/protocol/openid-connect/certs"),
+		CORSAllowOrigins:      getenvCSV("CORS_ALLOW_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"),
 		SeatLockTTLSeconds:    getenvInt("SEAT_LOCK_TTL_SECONDS", 600),
 		RateLimitReserve:      getenvInt("RATE_LIMIT_RESERVE", 5),
 		RateLimitWindowSecond: getenvInt("RATE_LIMIT_WINDOW_SECONDS", 10),
@@ -55,4 +58,17 @@ func getenvInt(key string, fallback int) int {
 		return fallback
 	}
 	return parsed
+}
+
+func getenvCSV(key, fallback string) []string {
+	raw := getenv(key, fallback)
+	parts := strings.Split(raw, ",")
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value != "" {
+			values = append(values, value)
+		}
+	}
+	return values
 }

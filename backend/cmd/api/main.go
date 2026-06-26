@@ -19,6 +19,7 @@ import (
 	"ticketstream/backend/pkg/logger"
 
 	"github.com/labstack/echo/v4"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
@@ -53,6 +54,12 @@ func main() {
 	e := echo.New()
 	e.HideBanner = true
 	e.Use(httpmiddleware.RequestID())
+	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
+		AllowOrigins:     cfg.CORSAllowOrigins,
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:     []string{echo.HeaderAuthorization, echo.HeaderContentType, echo.HeaderAccept, "Idempotency-Key"},
+		AllowCredentials: true,
+	}))
 	e.Use(httpmiddleware.Logger(appLogger))
 	e.Use(httpmiddleware.Recover())
 

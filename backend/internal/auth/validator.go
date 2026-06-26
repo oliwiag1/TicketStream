@@ -16,6 +16,7 @@ type TokenClaims struct {
 	PreferredUsername string                           `json:"preferred_username"`
 	Email             string                           `json:"email"`
 	Scope             string                           `json:"scope"`
+	AuthorizedParty   string                           `json:"azp"`
 	RealmAccess       RealmAccessClaims                `json:"realm_access"`
 	ResourceAccess    map[string]ResourceAccessClaims  `json:"resource_access"`
 }
@@ -64,7 +65,6 @@ func (v *Validator) Verify(ctx context.Context, rawToken string) (*TokenClaims, 
 		rawToken,
 		claims,
 		jwks.Keyfunc,
-		jwt.WithAudience(v.audience),
 		jwt.WithIssuer(v.issuerURL),
 		jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"}),
 	)
@@ -74,8 +74,20 @@ func (v *Validator) Verify(ctx context.Context, rawToken string) (*TokenClaims, 
 	if !parsedToken.Valid {
 		return nil, errors.New("token is not valid")
 	}
+	if !hasAudience(claims.Audience, v.audience) && claims.AuthorizedParty != v.audience {
+		return nil, errors.New("token audience is not valid")
+	}
 
 	return claims, nil
+}
+
+func hasAudience(audiences jwt.ClaimStrings, expected string) bool {
+	for _, audience := range audiences {
+		if audience == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func (v *Validator) ensureJWKS(ctx context.Context) error {
