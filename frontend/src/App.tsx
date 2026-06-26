@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LogOut, ShieldCheck } from "lucide-react";
 import { logout } from "./auth/keycloak";
+import { EntryPage } from "./pages/EntryPage";
 import { EventListPage } from "./pages/EventListPage";
 import { api } from "./services/api";
 
@@ -12,17 +14,27 @@ type CurrentUser = {
   scope: string;
 };
 
-export function App() {
+type AppProps = {
+  initialAuthenticated: boolean;
+};
+
+export function App({ initialAuthenticated }: AppProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState(initialAuthenticated);
   const userQuery = useQuery({
     queryKey: ["current-user"],
     queryFn: async () => {
       const response = await api.get<CurrentUser>("/auth/me");
       return response.data;
     },
+    enabled: isAuthenticated,
     retry: false
   });
 
   const user = userQuery.data;
+
+  if (!isAuthenticated) {
+    return <EntryPage />;
+  }
 
   return (
     <div className="min-h-screen">
@@ -44,7 +56,10 @@ export function App() {
               </span>
               <button
                 type="button"
-                onClick={() => void logout()}
+                onClick={() => {
+                  setIsAuthenticated(false);
+                  void logout();
+                }}
                 className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-3 py-1.5 font-medium text-ink transition hover:border-ink focus:outline-none focus:ring-2 focus:ring-mint focus:ring-offset-2"
               >
                 <LogOut className="h-4 w-4" aria-hidden="true" />

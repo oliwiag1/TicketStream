@@ -15,12 +15,12 @@ const queryClient = new QueryClient({
 });
 
 async function bootstrap() {
-  await initAuth();
+  const authenticated = await initAuth();
 
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <App />
+        <App initialAuthenticated={authenticated} />
       </QueryClientProvider>
     </React.StrictMode>
   );
