@@ -19,6 +19,7 @@ import (
 	"ticketstream/backend/internal/auth"
 	"ticketstream/backend/internal/config"
 	httpmiddleware "ticketstream/backend/internal/http/middleware"
+	"ticketstream/backend/internal/services"
 	"ticketstream/backend/pkg/db"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -57,7 +58,8 @@ func TestIntegrationConcurrentReservationSingleWinner(t *testing.T) {
 		t.Fatalf("insert seat: %v", err)
 	}
 
-	reservationHandler := NewReservationHandler(config.Config{SeatLockTTLSeconds: 600}, log.New(io.Discard, "", 0), pgPool, redisClient)
+	realtimeService := services.NewRealtimeService(log.New(io.Discard, "", 0), pgPool, redisClient)
+	reservationHandler := NewReservationHandler(config.Config{SeatLockTTLSeconds: 600}, log.New(io.Discard, "", 0), pgPool, redisClient, realtimeService)
 
 	const attempts = 8
 	statusCodes := make([]int, attempts)
@@ -154,8 +156,9 @@ func TestIntegrationReservationAndPaymentFlow(t *testing.T) {
 		t.Fatalf("insert seat: %v", err)
 	}
 
-	reservationHandler := NewReservationHandler(config.Config{SeatLockTTLSeconds: 600}, log.New(io.Discard, "", 0), pgPool, redisClient)
-	paymentHandler := NewPaymentHandler(log.New(io.Discard, "", 0), pgPool, redisClient, nil)
+	realtimeService := services.NewRealtimeService(log.New(io.Discard, "", 0), pgPool, redisClient)
+	reservationHandler := NewReservationHandler(config.Config{SeatLockTTLSeconds: 600}, log.New(io.Discard, "", 0), pgPool, redisClient, realtimeService)
+	paymentHandler := NewPaymentHandler(log.New(io.Discard, "", 0), pgPool, redisClient, realtimeService)
 	subject := "integration-user-" + uuid.NewString()
 
 	reserveBody := []byte(`{"seat_id":"` + seatID + `"}`)
@@ -223,6 +226,26 @@ func TestIntegrationReservationAndPaymentFlow(t *testing.T) {
 	}
 	if seatStatus != "sold" {
 		t.Fatalf("seat status after payment = %s, want sold", seatStatus)
+	}
+
+	var outboxEventType string
+	var publishedAt *time.Time
+	if err := pgPool.QueryRow(
+		ctx,
+		`SELECT event_type, published_at
+		 FROM outbox_events
+		 WHERE aggregate_id = $1
+		 ORDER BY created_at DESC
+		 LIMIT 1`,
+		reserveResp.ReservationID,
+	).Scan(&outboxEventType, &publishedAt); err != nil {
+		t.Fatalf("query outbox event: %v", err)
+	}
+	if outboxEventType != "payment.succeeded" {
+		t.Fatalf("outbox event_type = %s, want payment.succeeded", outboxEventType)
+	}
+	if publishedAt != nil {
+		t.Fatalf("outbox published_at = %v, want nil before publisher runs", *publishedAt)
 	}
 }
 

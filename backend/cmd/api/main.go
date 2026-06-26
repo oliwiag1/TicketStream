@@ -13,6 +13,7 @@ import (
 	"ticketstream/backend/internal/config"
 	httpmiddleware "ticketstream/backend/internal/http/middleware"
 	"ticketstream/backend/internal/http/routes"
+	"ticketstream/backend/internal/services"
 	"ticketstream/backend/pkg/broker"
 	"ticketstream/backend/pkg/cache"
 	"ticketstream/backend/pkg/db"
@@ -65,8 +66,13 @@ func main() {
 
 	tokenValidator := auth.NewValidator(cfg.KeycloakIssuerURL, cfg.KeycloakAudience, cfg.KeycloakJWKSURL)
 
-	router := routes.NewRouter(cfg, appLogger, pgPool, redisClient, rabbitChannel, tokenValidator)
+	router := routes.NewRouter(cfg, appLogger, pgPool, redisClient, tokenValidator)
 	router.Register(e)
+
+	outboxService := services.NewOutboxService(pgPool, rabbitChannel, appLogger)
+	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
+	defer backgroundCancel()
+	go startOutboxPublisher(backgroundCtx, appLogger, outboxService)
 
 	go func() {
 		addr := ":" + cfg.AppPort
@@ -77,6 +83,23 @@ func main() {
 	}()
 
 	waitForShutdown(appLogger, e)
+}
+
+func startOutboxPublisher(ctx context.Context, appLogger *log.Logger, outboxService *services.OutboxService) {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		if err := outboxService.PublishPending(ctx); err != nil {
+			appLogger.Printf("outbox publish failed: %v", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }
 
 func waitForShutdown(appLogger *log.Logger, e *echo.Echo) {

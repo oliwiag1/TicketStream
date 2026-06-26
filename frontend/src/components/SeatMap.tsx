@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { StateMessage } from "./common/StateMessage";
@@ -16,7 +17,15 @@ import {
   payReservation,
   reserveSeat
 } from "../services/api";
-import type { EventDTO, PayResponse, ReserveResponse, SeatDTO } from "../types/domain";
+import { connectEventSocket } from "../services/ws";
+import type {
+  EventDTO,
+  PayResponse,
+  ReserveResponse,
+  SeatDTO,
+  SeatSnapshotEvent,
+  SeatUpdateEvent
+} from "../types/domain";
 
 type SeatMapProps = {
   eventItem: EventDTO | null;
@@ -28,6 +37,10 @@ export function SeatMap({ eventItem }: SeatMapProps) {
   const [reservation, setReservation] = useState<ReserveResponse | null>(null);
   const [payment, setPayment] = useState<PayResponse | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [socketWarning, setSocketWarning] = useState<string | null>(null);
+  const lastSequenceNumberRef = useRef(0);
+  const reconnectTimerRef = useRef<number | null>(null);
 
   const eventId = eventItem?.id ?? "";
   const seatsQuery = useQuery({
@@ -41,7 +54,92 @@ export function SeatMap({ eventItem }: SeatMapProps) {
     setReservation(null);
     setPayment(null);
     setMessage(null);
+    setIsSocketConnected(false);
+    setSocketWarning(null);
+    lastSequenceNumberRef.current = 0;
   }, [eventId]);
+
+  useEffect(() => {
+    if (!eventId) {
+      return;
+    }
+
+    let closedByApp = false;
+    let socket: WebSocket | null = null;
+
+    const openSocket = () => {
+      if (closedByApp) {
+        return;
+      }
+
+      socket = connectEventSocket(eventId, {
+        onOpen: () => {
+          setIsSocketConnected(true);
+          setSocketWarning(null);
+        },
+        onClose: () => {
+          setIsSocketConnected(false);
+          if (closedByApp) {
+            return;
+          }
+          setSocketWarning("Połączenie realtime zostało zerwane. Trwa ponowne łączenie.");
+          reconnectTimerRef.current = window.setTimeout(openSocket, 1000);
+        },
+        onError: () => {
+          if (!closedByApp) {
+            setSocketWarning("Realtime chwilowo niedostępny. Widok może wymagać odświeżenia.");
+          }
+        },
+        onMessage: (payload) => {
+          if (payload.type === "snapshot") {
+            applySnapshot(queryClient, eventId, payload);
+            reconcileLocalStateFromSnapshot(
+              payload,
+              setSelectedSeat,
+              setReservation,
+              setPayment,
+              setMessage
+            );
+            lastSequenceNumberRef.current = payload.sequence_number;
+            return;
+          }
+
+          const update = payload as SeatUpdateEvent;
+          if (update.sequence_number <= lastSequenceNumberRef.current) {
+            return;
+          }
+
+          if (update.sequence_number > lastSequenceNumberRef.current + 1) {
+            void invalidateSeats(queryClient, eventId);
+            setSocketWarning("Wykryto lukę w aktualizacjach. Odświeżamy stan miejsc.");
+          }
+
+          lastSequenceNumberRef.current = update.sequence_number;
+          applySeatUpdate(queryClient, eventId, update);
+          reconcileLocalStateFromUpdate(
+            update,
+            setSelectedSeat,
+            setReservation,
+            setPayment,
+            setMessage
+          );
+        }
+      });
+    };
+
+    openSocket();
+
+    return () => {
+      closedByApp = true;
+      setIsSocketConnected(false);
+      setSocketWarning(null);
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      socket?.close();
+    };
+  }, [eventId, queryClient]);
 
   const seats = seatsQuery.data ?? [];
   const seatsByRow = useMemo(() => groupSeatsByRow(seats), [seats]);
@@ -161,6 +259,12 @@ export function SeatMap({ eventItem }: SeatMapProps) {
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div>
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-line bg-paper px-3 py-2 text-sm text-rail">
+            <span>
+              Realtime: {isSocketConnected ? "połączono" : "łączenie / offline"}
+            </span>
+            {socketWarning ? <span className="text-amber">{socketWarning}</span> : null}
+          </div>
           <SeatLegend />
 
           {seatsQuery.isLoading ? (
@@ -213,4 +317,92 @@ export function SeatMap({ eventItem }: SeatMapProps) {
 
 function invalidateSeats(queryClient: ReturnType<typeof useQueryClient>, eventId: string) {
   return queryClient.invalidateQueries({ queryKey: ["event-seats", eventId] });
+}
+
+function applySnapshot(
+  queryClient: ReturnType<typeof useQueryClient>,
+  eventId: string,
+  snapshot: SeatSnapshotEvent
+) {
+  queryClient.setQueryData<SeatDTO[]>(["event-seats", eventId], (currentSeats = []) => {
+    const currentById = new Map(currentSeats.map((seat) => [seat.id, seat]));
+    return snapshot.seats.map((seat) => {
+      const current = currentById.get(seat.seat_id);
+      return {
+        id: seat.seat_id,
+        row: current?.row ?? seat.row,
+        number: current?.number ?? seat.number,
+        status: seat.status
+      };
+    });
+  });
+}
+
+function applySeatUpdate(
+  queryClient: ReturnType<typeof useQueryClient>,
+  eventId: string,
+  update: SeatUpdateEvent
+) {
+  queryClient.setQueryData<SeatDTO[]>(["event-seats", eventId], (currentSeats = []) =>
+    currentSeats.map((seat) =>
+      seat.id === update.seat_id ? { ...seat, status: update.status } : seat
+    )
+  );
+}
+
+function reconcileLocalStateFromSnapshot(
+  snapshot: SeatSnapshotEvent,
+  setSelectedSeat: Dispatch<SetStateAction<SeatDTO | null>>,
+  setReservation: Dispatch<SetStateAction<ReserveResponse | null>>,
+  setPayment: Dispatch<SetStateAction<PayResponse | null>>,
+  setMessage: Dispatch<SetStateAction<string | null>>
+) {
+  const seatStatuses = new Map(snapshot.seats.map((seat) => [seat.seat_id, seat.status]));
+
+  setSelectedSeat((current) => {
+    if (!current) {
+      return current;
+    }
+    const nextStatus = seatStatuses.get(current.id);
+    return nextStatus ? { ...current, status: nextStatus } : current;
+  });
+
+  setReservation((current) => {
+    if (!current) {
+      return current;
+    }
+    const nextStatus = seatStatuses.get(current.seat_id);
+    if (nextStatus === "available") {
+      setPayment(null);
+      setMessage("Rezerwacja nie jest już aktywna.");
+      return null;
+    }
+    return current;
+  });
+}
+
+function reconcileLocalStateFromUpdate(
+  update: SeatUpdateEvent,
+  setSelectedSeat: Dispatch<SetStateAction<SeatDTO | null>>,
+  setReservation: Dispatch<SetStateAction<ReserveResponse | null>>,
+  setPayment: Dispatch<SetStateAction<PayResponse | null>>,
+  setMessage: Dispatch<SetStateAction<string | null>>
+) {
+  setSelectedSeat((current) =>
+    current && current.id === update.seat_id ? { ...current, status: update.status } : current
+  );
+
+  setReservation((current) => {
+    if (!current || current.seat_id !== update.seat_id) {
+      return current;
+    }
+
+    if (update.status === "available") {
+      setPayment(null);
+      setMessage("Rezerwacja została zwolniona.");
+      return null;
+    }
+
+    return current;
+  });
 }

@@ -54,9 +54,9 @@ Kryterium akceptacji:
 ### 3.4 Outbox + Worker
 
 - [x] Tworzenie outbox event po sukcesie platnosci.
-- [ ] Publisher outbox -> RabbitMQ.
-- [ ] Worker PDF/email z retry.
-- [ ] DLQ dla bledow trwalych.
+- [x] Publisher outbox -> RabbitMQ.
+- [x] Worker PDF/email z retry.
+- [x] DLQ dla bledow trwalych.
 
 Kryterium akceptacji:
 
@@ -65,10 +65,10 @@ Kryterium akceptacji:
 
 ### 3.5 Realtime WebSocket
 
-- [ ] Realny websocket upgrade i obsluga polaczen.
-- [ ] Broadcast seat_status_changed po lock/sold/release.
-- [ ] sequence_number i ochrona przed out-of-order.
-- [ ] Resync snapshot po reconnect.
+- [x] Realny websocket upgrade i obsluga polaczen.
+- [x] Broadcast seat_status_changed po lock/sold/release.
+- [x] sequence_number i ochrona przed out-of-order.
+- [x] Resync snapshot po reconnect.
 
 Kryterium akceptacji:
 
@@ -76,11 +76,11 @@ Kryterium akceptacji:
 
 ### 3.6 Frontend MVP flow
 
-- [ ] Login view + obsluga sesji.
-- [ ] Lista wydarzen z API.
-- [ ] Mapa miejsc i akcja rezerwacji.
-- [ ] Przejscie do platnosci i obsluga komunikatow konfliktu.
-- [ ] Integracja websocket update.
+- [x] Login view + obsluga sesji.
+- [x] Lista wydarzen z API.
+- [x] Mapa miejsc i akcja rezerwacji.
+- [x] Przejscie do platnosci i obsluga komunikatow konfliktu.
+- [x] Integracja websocket update.
 
 Kryterium akceptacji:
 
