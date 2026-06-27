@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"ticketstream/backend/internal/config"
+	"ticketstream/backend/internal/observability"
 	"ticketstream/backend/internal/services"
 
 	"github.com/google/uuid"
@@ -53,6 +54,7 @@ func (h *ReservationHandler) Reserve(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "lock unavailable"})
 	}
 	if !lockOk {
+		observability.IncLockContention()
 		return c.JSON(http.StatusConflict, map[string]string{"error": "seat_already_reserved"})
 	}
 
@@ -76,6 +78,7 @@ func (h *ReservationHandler) Reserve(c echo.Context) error {
 	if err != nil {
 		h.releaseSeatLock(ctx, lockKey, subject)
 		if err == pgx.ErrNoRows {
+			observability.IncLockContention()
 			return c.JSON(http.StatusConflict, map[string]string{"error": "seat_not_available"})
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "seat lock failed"})

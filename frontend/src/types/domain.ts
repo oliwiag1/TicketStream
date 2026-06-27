@@ -19,6 +19,34 @@ export type EventsResponse = {
   };
 };
 
+export type TicketDTO = {
+  reservationId: string;
+  eventId: string;
+  eventTitle: string;
+  eventStartsAt: string;
+  seatId: string;
+  seatRow: string;
+  seatNumber: number;
+  status: "sold";
+  purchasedAt: string;
+};
+
+export type TicketAPIResponse = {
+  reservation_id: string;
+  event_id: string;
+  event_title: string;
+  event_starts_at: string;
+  seat_id: string;
+  seat_row: string;
+  seat_number: number;
+  status: "sold";
+  purchased_at: string;
+};
+
+export type MyTicketsResponse = {
+  items: TicketAPIResponse[];
+};
+
 export type SeatDTO = {
   id: string;
   row: string;

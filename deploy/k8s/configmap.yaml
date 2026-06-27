@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticketstream-config
+  namespace: ticketstream
+data:
+  APP_ENV: production
+  APP_PORT: "8080"
+  SEAT_LOCK_TTL_SECONDS: "600"
+  EXPIRED_SWEEP_SECONDS: "5"
+  RATE_LIMIT_RESERVE: "8"
+  RATE_LIMIT_AUTH: "40"
+  RATE_LIMIT_WINDOW_SECONDS: "10"
+  CORS_ALLOW_ORIGINS: "https://ticketstream.example.com"

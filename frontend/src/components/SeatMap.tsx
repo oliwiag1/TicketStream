@@ -195,6 +195,7 @@ export function SeatMap({ eventItem }: SeatMapProps) {
       setPayment(nextPayment);
       setMessage("Bilet kupiony.");
       void invalidateSeats(queryClient, eventId);
+      void queryClient.invalidateQueries({ queryKey: ["my-tickets"] });
     },
     onError: (error) => {
       if (isStatus(error, 409)) {

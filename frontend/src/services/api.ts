@@ -4,10 +4,12 @@ import type {
   EventDTO,
   EventsResponse,
   CancelReservationResponse,
+  MyTicketsResponse,
   PayResponse,
   ReserveResponse,
   SeatDTO,
-  SeatsResponse
+  SeatsResponse,
+  TicketDTO
 } from "../types/domain";
 
 export const api = axios.create({
@@ -36,6 +38,21 @@ export async function getEvents(): Promise<EventDTO[]> {
 export async function getEventSeats(eventId: string): Promise<SeatDTO[]> {
   const response = await api.get<SeatsResponse>(`/events/${eventId}/seats`);
   return response.data.seats;
+}
+
+export async function getMyTickets(): Promise<TicketDTO[]> {
+  const response = await api.get<MyTicketsResponse>("/tickets/me");
+  return response.data.items.map((ticketItem) => ({
+    reservationId: ticketItem.reservation_id,
+    eventId: ticketItem.event_id,
+    eventTitle: ticketItem.event_title,
+    eventStartsAt: ticketItem.event_starts_at,
+    seatId: ticketItem.seat_id,
+    seatRow: ticketItem.seat_row,
+    seatNumber: ticketItem.seat_number,
+    status: ticketItem.status,
+    purchasedAt: ticketItem.purchased_at
+  }));
 }
 
 export async function reserveSeat(

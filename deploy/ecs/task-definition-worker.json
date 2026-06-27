@@ -1,0 +1,31 @@
+{
+  "family": "ticketstream-worker",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "worker",
+      "image": "ticketstream/api:latest",
+      "essential": true,
+      "command": ["worker"],
+      "environment": [
+        { "name": "APP_ENV", "value": "production" }
+      ],
+      "secrets": [
+        { "name": "POSTGRES_URL", "valueFrom": "arn:aws:secretsmanager:region:account:secret:ticketstream/postgres" },
+        { "name": "REDIS_URL", "valueFrom": "arn:aws:secretsmanager:region:account:secret:ticketstream/redis" },
+        { "name": "RABBITMQ_URL", "valueFrom": "arn:aws:secretsmanager:region:account:secret:ticketstream/rabbitmq" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/ticketstream-worker",
+          "awslogs-region": "eu-central-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

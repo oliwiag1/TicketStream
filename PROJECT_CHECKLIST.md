@@ -95,30 +95,30 @@ Kryterium akceptacji:
 
 ### 4.2 Rate limiting i bezpieczenstwo
 
-- [ ] Redis-based rate limiting dla rezerwacji i auth.
-- [ ] CORS allowlist i podstawowe security headers.
-- [ ] CSRF ochrona dla endpointow mutujacych.
+- [x] Redis-based rate limiting dla rezerwacji i auth.
+- [x] CORS allowlist i podstawowe security headers.
+- [x] CSRF ochrona dla endpointow mutujacych.
 
 ### 4.3 Observability
 
-- [ ] Metryki P95/P99, error rate, queue lag, lock contention.
-- [ ] Logi strukturalne z request_id/trace_id.
-- [ ] Dashboard minimum (np. Grafana albo prosty panel metryk).
+- [x] Metryki P95/P99, error rate, queue lag, lock contention.
+- [x] Logi strukturalne z request_id/trace_id.
+- [x] Dashboard minimum (np. Grafana albo prosty panel metryk).
 
 ### 4.4 Testy
 
 - [x] Unit testy logiki domenowej.
 - [x] Integration test dla rownoleglych rezerwacji.
 - [x] Integration test dla idempotencji platnosci.
-- [ ] Smoke test websocket.
-- [ ] Load test (minimum scenariusz flash sale).
+- [x] Smoke test websocket.
+- [x] Load test (minimum scenariusz flash sale).
 
 ## 5. Priorytet P2 (mile widziane / production stretch)
 
-- [ ] PostgreSQL replica + failover plan.
-- [ ] Redis Sentinel/Cluster plan.
-- [ ] Kubernetes/ECS deployment profile.
-- [ ] Backup/restore test runbook.
+- [x] PostgreSQL replica + failover plan.
+- [x] Redis Sentinel/Cluster plan.
+- [x] Kubernetes/ECS deployment profile.
+- [x] Backup/restore test runbook.
 
 ## 6. Kolejnosc realizacji (rekomendowana)
 
@@ -141,23 +141,35 @@ Kryterium akceptacji:
 
 ### Sprint 1
 
-- [ ] Auth + sesja
+- [x] Auth + sesja
 - [x] Events/seats API + cache
 - [x] Reservation core (lock + transakcja)
-- [ ] Frontend: lista wydarzen + rezerwacja
+- [x] Frontend: lista wydarzen + rezerwacja
 
 ### Sprint 2
 
 - [x] Payments + idempotencja
-- [ ] Outbox + worker + DLQ
-- [ ] WebSocket realtime
-- [ ] Testy integration/load
+- [x] Outbox + worker + DLQ
+- [x] WebSocket realtime
+- [x] Testy integration/load
 - [ ] Finalne poprawki i demo
 
 ## 9. Checklista przed oddaniem
 
 - [ ] Demo przechodzi od A do Z bez restartu i bez "manual fix".
-- [ ] Scenariusz konfliktu miejsca jest pokazany i dziala poprawnie.
-- [ ] Scenariusz duplikatu platnosci jest pokazany i dziala poprawnie.
-- [ ] README zawiera aktualne komendy uruchomienia.
-- [ ] Architektura i ADR sa zgodne z tym, co jest w kodzie.
+- [x] Scenariusz konfliktu miejsca jest pokazany i dziala poprawnie.
+- [x] Scenariusz duplikatu platnosci jest pokazany i dziala poprawnie.
+- [x] README zawiera aktualne komendy uruchomienia.
+- [x] Architektura i ADR sa zgodne z tym, co jest w kodzie.
+
+## 10. Weryfikacja z przegladu kodu (2026-06-27)
+
+Status realny po wdrozeniach:
+
+1. Dodano automatyczne zwalnianie wygasnietych rezerwacji (sweeper) z aktualizacja statusu miejsca i broadcastem realtime.
+2. Wdrozono Redis-based rate limiting dla auth i reserve.
+3. Wdrozono security headers i CSRF protection (origin/referer) dla endpointow mutujacych.
+4. Wdrozono observability: metryki P95/P99, error rate, queue lag, lock contention, endpoint /metrics i dashboard /ops/dashboard.
+5. Dodano structured request logging z request_id i trace_id.
+6. Dodano scenariusz load test (flash sale) oraz dokumentacje README, ADR, profile K8s/ECS i runbook backup/restore.
+7. Docker Compose utwardzony healthcheckami i warunkami depends_on; potwierdzony cold start bez recznego restartu API/workera.
