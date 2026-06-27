@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { ListChecks, LogOut, ShieldCheck, Ticket } from "lucide-react";
 import { logout } from "./auth/keycloak";
 import { EntryPage } from "./pages/EntryPage";
 import { EventListPage } from "./pages/EventListPage";
+import { MyTicketsPage } from "./pages/MyTicketsPage";
 import { api } from "./services/api";
 import { StateMessage } from "./components/common/StateMessage";
 
@@ -21,6 +22,7 @@ type AppProps = {
 
 export function App({ initialAuthenticated }: AppProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(initialAuthenticated);
+  const [activeView, setActiveView] = useState<"events" | "tickets">("events");
   const userQuery = useQuery({
     queryKey: ["current-user"],
     queryFn: async () => {
@@ -85,7 +87,36 @@ export function App({ initialAuthenticated }: AppProps) {
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <EventListPage />
+        <div className="mb-5 inline-flex w-full flex-wrap items-center gap-2 rounded-md border border-line bg-white p-2 sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setActiveView("events")}
+            className={[
+              "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-mint focus:ring-offset-2",
+              activeView === "events"
+                ? "bg-ink text-white"
+                : "border border-line bg-white text-ink hover:border-ink"
+            ].join(" ")}
+          >
+            <Ticket className="h-4 w-4" aria-hidden="true" />
+            Zakup biletu
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView("tickets")}
+            className={[
+              "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-mint focus:ring-offset-2",
+              activeView === "tickets"
+                ? "bg-ink text-white"
+                : "border border-line bg-white text-ink hover:border-ink"
+            ].join(" ")}
+          >
+            <ListChecks className="h-4 w-4" aria-hidden="true" />
+            Moje bilety
+          </button>
+        </div>
+
+        {activeView === "events" ? <EventListPage /> : <MyTicketsPage />}
       </main>
     </div>
   );

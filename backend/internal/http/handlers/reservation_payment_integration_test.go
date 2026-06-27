@@ -249,6 +249,106 @@ func TestIntegrationReservationAndPaymentFlow(t *testing.T) {
 	}
 }
 
+func TestIntegrationListMyTicketsReturnsOnlySoldReservations(t *testing.T) {
+	ctx := context.Background()
+	pgPool, redisClient := integrationDependencies(t)
+	defer pgPool.Close()
+	defer redisClient.Close()
+
+	eventID := uuid.NewString()
+	soldSeatID := uuid.NewString()
+	lockedSeatID := uuid.NewString()
+
+	_, err := pgPool.Exec(
+		ctx,
+		`INSERT INTO events (id, title, description, starts_at) VALUES ($1, $2, $3, $4)`,
+		eventID,
+		"Ticket List Concert",
+		"tickets list test",
+		time.Now().UTC().Add(2*time.Hour),
+	)
+	if err != nil {
+		t.Fatalf("insert event: %v", err)
+	}
+	_, err = pgPool.Exec(
+		ctx,
+		`INSERT INTO seats (id, event_id, seat_row, seat_number, status) VALUES
+		 ($1, $3, 'A', 1, 'available'),
+		 ($2, $3, 'A', 2, 'available')`,
+		soldSeatID,
+		lockedSeatID,
+		eventID,
+	)
+	if err != nil {
+		t.Fatalf("insert seats: %v", err)
+	}
+
+	realtimeService := services.NewRealtimeService(log.New(io.Discard, "", 0), pgPool, redisClient)
+	reservationHandler := NewReservationHandler(config.Config{SeatLockTTLSeconds: 600}, log.New(io.Discard, "", 0), pgPool, redisClient, realtimeService)
+	paymentHandler := NewPaymentHandler(log.New(io.Discard, "", 0), pgPool, redisClient, realtimeService)
+	ticketsHandler := NewTicketsHandler(log.New(io.Discard, "", 0), pgPool)
+	subject := "tickets-user-" + uuid.NewString()
+
+	soldReservation := reserveSeatForTest(t, reservationHandler, eventID, soldSeatID, subject)
+	payReservationForTest(t, paymentHandler, soldReservation.ReservationID, subject)
+	_ = reserveSeatForTest(t, reservationHandler, eventID, lockedSeatID, subject)
+
+	ticketsCtx, ticketsRec := newAuthedContext(t, subject, "GET", "/tickets/me", nil)
+	if err := ticketsHandler.ListMine(ticketsCtx); err != nil {
+		t.Fatalf("tickets handler returned error: %v", err)
+	}
+	if ticketsRec.Code != http.StatusOK {
+		t.Fatalf("tickets status = %d, want 200, body=%s", ticketsRec.Code, ticketsRec.Body.String())
+	}
+
+	var response struct {
+		Items []struct {
+			ReservationID string `json:"reservation_id"`
+			EventID       string `json:"event_id"`
+			EventTitle    string `json:"event_title"`
+			EventStartsAt string `json:"event_starts_at"`
+			SeatID        string `json:"seat_id"`
+			SeatRow       string `json:"seat_row"`
+			SeatNumber    int    `json:"seat_number"`
+			Status        string `json:"status"`
+			PurchasedAt   string `json:"purchased_at"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(ticketsRec.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode tickets response: %v", err)
+	}
+
+	if len(response.Items) != 1 {
+		t.Fatalf("tickets items len = %d, want 1, payload=%s", len(response.Items), ticketsRec.Body.String())
+	}
+
+	item := response.Items[0]
+	if item.ReservationID != soldReservation.ReservationID {
+		t.Fatalf("reservation_id = %s, want %s", item.ReservationID, soldReservation.ReservationID)
+	}
+	if item.EventID != eventID {
+		t.Fatalf("event_id = %s, want %s", item.EventID, eventID)
+	}
+	if item.EventTitle != "Ticket List Concert" {
+		t.Fatalf("event_title = %s, want Ticket List Concert", item.EventTitle)
+	}
+	if item.SeatID != soldSeatID {
+		t.Fatalf("seat_id = %s, want %s", item.SeatID, soldSeatID)
+	}
+	if item.SeatRow != "A" || item.SeatNumber != 1 {
+		t.Fatalf("seat = %s%d, want A1", item.SeatRow, item.SeatNumber)
+	}
+	if item.Status != "sold" {
+		t.Fatalf("status = %s, want sold", item.Status)
+	}
+	if item.EventStartsAt == "" {
+		t.Fatalf("event_starts_at should not be empty")
+	}
+	if item.PurchasedAt == "" {
+		t.Fatalf("purchased_at should not be empty")
+	}
+}
+
 func integrationDependencies(t *testing.T) (*pgxpool.Pool, *redis.Client) {
 	t.Helper()
 	ctx := context.Background()

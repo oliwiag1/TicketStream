@@ -1,6 +1,6 @@
 APP_NAME=ticketstream
 
-.PHONY: tidy run-api run-worker test-unit test-integration test-e2e
+.PHONY: tidy run-api run-worker test-unit test-integration test-e2e test-load
 
 tidy:
 	go mod tidy
@@ -19,3 +19,6 @@ test-integration:
 
 test-e2e:
 	go test -tags=e2e ./tests/e2e/...
+
+test-load:
+	k6 run ./tests/load/flash_sale.js

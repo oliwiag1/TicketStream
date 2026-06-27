@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticketstream-api
+  namespace: ticketstream
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ticketstream-api
+  template:
+    metadata:
+      labels:
+        app: ticketstream-api
+    spec:
+      containers:
+        - name: api
+          image: ticketstream/api:latest
+          args: ["api"]
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: ticketstream-config
+          env:
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ticketstream-secrets
+                  key: POSTGRES_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ticketstream-secrets
+                  key: REDIS_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ticketstream-secrets
+                  key: RABBITMQ_URL
+            - name: KEYCLOAK_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ticketstream-secrets
+                  key: KEYCLOAK_ISSUER_URL
+            - name: KEYCLOAK_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: ticketstream-secrets
+                  key: KEYCLOAK_AUDIENCE
+            - name: KEYCLOAK_JWKS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ticketstream-secrets
+                  key: KEYCLOAK_JWKS_URL
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticketstream-api
+  namespace: ticketstream
+spec:
+  selector:
+    app: ticketstream-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

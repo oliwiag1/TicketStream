@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticketstream
+  namespace: ticketstream
+spec:
+  rules:
+    - host: ticketstream.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ticketstream-api
+                port:
+                  number: 80

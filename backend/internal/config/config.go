@@ -18,7 +18,9 @@ type Config struct {
 	KeycloakJWKSURL       string
 	CORSAllowOrigins      []string
 	SeatLockTTLSeconds    int
+	ExpiredSweepSeconds   int
 	RateLimitReserve      int
+	RateLimitAuth         int
 	RateLimitWindowSecond int
 }
 
@@ -35,7 +37,9 @@ func Load() Config {
 		KeycloakJWKSURL:       getenv("KEYCLOAK_JWKS_URL", "http://host.docker.internal:18081/realms/ticketstream/protocol/openid-connect/certs"),
 		CORSAllowOrigins:      getenvCSV("CORS_ALLOW_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"),
 		SeatLockTTLSeconds:    getenvInt("SEAT_LOCK_TTL_SECONDS", 600),
+		ExpiredSweepSeconds:   getenvInt("EXPIRED_SWEEP_SECONDS", 5),
 		RateLimitReserve:      getenvInt("RATE_LIMIT_RESERVE", 5),
+		RateLimitAuth:         getenvInt("RATE_LIMIT_AUTH", 30),
 		RateLimitWindowSecond: getenvInt("RATE_LIMIT_WINDOW_SECONDS", 10),
 	}
 }
