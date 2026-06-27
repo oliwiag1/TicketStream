@@ -89,15 +89,15 @@ func (h *TicketsHandler) ListMine(c echo.Context) error {
 		}
 
 		items = append(items, map[string]any{
-			"reservation_id": reservationID,
-			"event_id":       eventID,
-			"event_title":    eventTitle,
+			"reservation_id":  reservationID,
+			"event_id":        eventID,
+			"event_title":     eventTitle,
 			"event_starts_at": eventStartsAt.UTC(),
-			"seat_id":        seatID,
-			"seat_row":       seatRow,
-			"seat_number":    seatNumber,
-			"status":         status,
-			"purchased_at":   purchasedAt.UTC(),
+			"seat_id":         seatID,
+			"seat_row":        seatRow,
+			"seat_number":     seatNumber,
+			"status":          status,
+			"purchased_at":    purchasedAt.UTC(),
 		})
 	}
 

@@ -12,13 +12,13 @@ import (
 
 type TokenClaims struct {
 	jwt.RegisteredClaims
-	Subject           string                           `json:"sub"`
-	PreferredUsername string                           `json:"preferred_username"`
-	Email             string                           `json:"email"`
-	Scope             string                           `json:"scope"`
-	AuthorizedParty   string                           `json:"azp"`
-	RealmAccess       RealmAccessClaims                `json:"realm_access"`
-	ResourceAccess    map[string]ResourceAccessClaims  `json:"resource_access"`
+	Subject           string                          `json:"sub"`
+	PreferredUsername string                          `json:"preferred_username"`
+	Email             string                          `json:"email"`
+	Scope             string                          `json:"scope"`
+	AuthorizedParty   string                          `json:"azp"`
+	RealmAccess       RealmAccessClaims               `json:"realm_access"`
+	ResourceAccess    map[string]ResourceAccessClaims `json:"resource_access"`
 }
 
 type RealmAccessClaims struct {
@@ -114,12 +114,12 @@ func (v *Validator) ensureJWKS(ctx context.Context) error {
 	}
 
 	options := keyfunc.Options{
-		Ctx:               ctx,
+		Ctx:                 ctx,
 		RefreshErrorHandler: func(err error) {},
-		RefreshInterval:   time.Hour,
-		RefreshRateLimit:  time.Minute,
-		RefreshTimeout:    10 * time.Second,
-		RefreshUnknownKID: true,
+		RefreshInterval:     time.Hour,
+		RefreshRateLimit:    time.Minute,
+		RefreshTimeout:      10 * time.Second,
+		RefreshUnknownKID:   true,
 	}
 
 	jwks, err := keyfunc.Get(v.jwksURL, options)

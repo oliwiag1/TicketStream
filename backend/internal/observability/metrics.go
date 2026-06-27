@@ -25,11 +25,11 @@ type Collector struct {
 }
 
 type RouteSnapshot struct {
-	Route string  `json:"route"`
-	Count int64   `json:"count"`
-	Errors int64  `json:"errors"`
-	P95Ms float64 `json:"p95_ms"`
-	P99Ms float64 `json:"p99_ms"`
+	Route  string  `json:"route"`
+	Count  int64   `json:"count"`
+	Errors int64   `json:"errors"`
+	P95Ms  float64 `json:"p95_ms"`
+	P99Ms  float64 `json:"p99_ms"`
 }
 
 type Snapshot struct {
