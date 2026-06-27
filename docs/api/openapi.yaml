@@ -13,6 +13,7 @@ servers:
 
 tags:
   - name: Health
+  - name: Observability
   - name: Auth
   - name: Events
   - name: Reservation
@@ -62,6 +63,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DependencyStatusResponse"
+
+  /metrics:
+    get:
+      tags: [Observability]
+      summary: Runtime metrics snapshot (JSON)
+      responses:
+        "200":
+          description: Aggregated in-memory metrics snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservabilitySnapshotResponse"
+
+  /ops/dashboard:
+    get:
+      tags: [Observability]
+      summary: Operational dashboard (HTML)
+      responses:
+        "200":
+          description: Dashboard page rendered as HTML
+          content:
+            text/html:
+              schema:
+                type: string
 
   /auth/provider:
     get:
@@ -315,6 +340,51 @@ components:
         dependency:
           type: string
       required: [status]
+
+    ObservabilityRouteSnapshot:
+      type: object
+      properties:
+        route:
+          type: string
+        count:
+          type: integer
+          format: int64
+        errors:
+          type: integer
+          format: int64
+        p95_ms:
+          type: number
+          format: float
+        p99_ms:
+          type: number
+          format: float
+      required: [route, count, errors, p95_ms, p99_ms]
+
+    ObservabilitySnapshotResponse:
+      type: object
+      properties:
+        generated_at_utc:
+          type: string
+        total_requests:
+          type: integer
+          format: int64
+        total_errors:
+          type: integer
+          format: int64
+        error_rate:
+          type: number
+          format: float
+        queue_lag:
+          type: integer
+          format: int64
+        lock_contention:
+          type: integer
+          format: int64
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ObservabilityRouteSnapshot"
+      required: [generated_at_utc, total_requests, total_errors, error_rate, queue_lag, lock_contention, routes]
 
     ErrorResponse:
       type: object

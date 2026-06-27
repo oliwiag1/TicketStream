@@ -41,7 +41,7 @@ jobs:
         run: go test ./...
 
   frontend-ci:
-    name: Frontend Build Check
+    name: Frontend Lint, Test and Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -54,12 +54,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test
 
       - name: Run build
         run: npm run build
+
+  load-test-script-check:
+    name: Load Test Script Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Validate load test script
+        run: k6 inspect backend/tests/load/flash_sale.js
 
   cd-build:
     name: CD Build Candidate Images
@@ -67,6 +88,7 @@ jobs:
     needs:
       - backend-ci
       - frontend-ci
+      - load-test-script-check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
